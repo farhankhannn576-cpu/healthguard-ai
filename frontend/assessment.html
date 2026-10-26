@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Assessment — HealthGuard AI</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">❤</span> HealthGuard AI</div>
+    <nav>
+      <a href="dashboard.html" data-nav-link="dashboard">📊 Dashboard</a>
+      <a href="assessment.html" data-nav-link="assessment">📋 New Assessment</a>
+      <a href="history.html" data-nav-link="history">🕘 History</a>
+      <a href="assistant.html" data-nav-link="assistant">💬 AI Assistant</a>
+    </nav>
+    <div class="logout">
+      <a href="#" data-logout class="btn btn-outline btn-block">Log out</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div>
+        <h1>Health Assessment</h1>
+        <p>Answer honestly for the most useful result. Takes about 3 minutes.</p>
+      </div>
+    </div>
+
+    <div class="disclaimer" style="margin-bottom:20px;">
+      <strong>Medical Disclaimer</strong>
+      This provides educational health-risk screening only and is not a diagnosis. Consult a licensed
+      healthcare professional for medical advice.
+    </div>
+
+    <div id="alert" class="alert"></div>
+
+    <div class="card" style="max-width:720px;">
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:20%;"></div></div>
+
+      <form id="assessmentForm" novalidate>
+
+        <!-- Section 1: Basics -->
+        <section class="form-section active" data-section="1">
+          <h3>1. Basic Information</h3>
+          <div class="field-row">
+            <div class="field">
+              <label for="age">Age</label>
+              <input type="number" id="age" min="1" max="120" required>
+            </div>
+            <div class="field">
+              <label for="gender">Gender</label>
+              <select id="gender" required>
+                <option value="">Select…</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="height">Height (cm)</label>
+              <input type="number" id="height" min="50" max="260" required>
+            </div>
+            <div class="field">
+              <label for="weight">Weight (kg)</label>
+              <input type="number" id="weight" min="20" max="350" required>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 2: Vitals -->
+        <section class="form-section" data-section="2">
+          <h3>2. Vital Signs</h3>
+          <div class="field-row">
+            <div class="field">
+              <label for="systolic">Blood Pressure — Systolic</label>
+              <input type="number" id="systolic" min="70" max="250" required>
+            </div>
+            <div class="field">
+              <label for="diastolic">Blood Pressure — Diastolic</label>
+              <input type="number" id="diastolic" min="40" max="150" required>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="heart_rate">Resting Heart Rate (bpm)</label>
+              <input type="number" id="heart_rate" min="30" max="220" required>
+            </div>
+            <div class="field">
+              <label for="glucose">Blood Glucose (mg/dL)</label>
+              <input type="number" id="glucose" min="40" max="500" required>
+            </div>
+          </div>
+          <div class="field">
+            <label for="sleep">Average Sleep (hours/night)</label>
+            <input type="number" id="sleep" min="0" max="24" step="0.5" required>
+          </div>
+        </section>
+
+        <!-- Section 3: Lifestyle -->
+        <section class="form-section" data-section="3">
+          <h3>3. Lifestyle</h3>
+          <div class="field">
+            <label>Physical Activity Level</label>
+            <div class="chip-select" data-chip-group="activity">
+              <div class="chip" data-value="sedentary">Sedentary</div>
+              <div class="chip" data-value="light">Light</div>
+              <div class="chip" data-value="moderate">Moderate</div>
+              <div class="chip" data-value="active">Active</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Smoking</label>
+            <div class="chip-select" data-chip-group="smoking">
+              <div class="chip" data-value="never">Never</div>
+              <div class="chip" data-value="former">Former</div>
+              <div class="chip" data-value="current">Current</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Alcohol Consumption</label>
+            <div class="chip-select" data-chip-group="alcohol">
+              <div class="chip" data-value="none">None</div>
+              <div class="chip" data-value="occasional">Occasional</div>
+              <div class="chip" data-value="frequent">Frequent</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Stress Level</label>
+            <div class="chip-select" data-chip-group="stress">
+              <div class="chip" data-value="low">Low</div>
+              <div class="chip" data-value="moderate">Moderate</div>
+              <div class="chip" data-value="high">High</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 4: History -->
+        <section class="form-section" data-section="4">
+          <h3>4. Medical History</h3>
+          <div class="field">
+            <label for="family_history">Family history of (comma-separated)</label>
+            <input type="text" id="family_history" placeholder="e.g. diabetes, heart disease">
+          </div>
+          <div class="field">
+            <label for="existing_conditions">Existing conditions (comma-separated)</label>
+            <input type="text" id="existing_conditions" placeholder="e.g. hypertension, asthma">
+          </div>
+          <div class="field">
+            <label for="symptoms">Current symptoms, if any (comma-separated)</label>
+            <input type="text" id="symptoms" placeholder="e.g. fatigue, headaches">
+          </div>
+        </section>
+
+        <!-- Section 5: Review -->
+        <section class="form-section" data-section="5">
+          <h3>5. Review &amp; Submit</h3>
+          <p style="color:var(--text-muted); font-size:0.92rem;">Please review your entries below, then submit for AI risk prediction.</p>
+          <div id="reviewSummary" style="font-size:0.9rem;"></div>
+        </section>
+
+        <div class="step-nav">
+          <button type="button" class="btn btn-ghost" id="prevBtn" style="visibility:hidden;">← Back</button>
+          <button type="button" class="btn btn-primary" id="nextBtn">Next →</button>
+          <button type="submit" class="btn btn-primary" id="submitBtn" style="display:none;">Submit Assessment</button>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+  Auth.requireAuth();
+  initNavUser('assessment');
+
+  const totalSections = 5;
+  let current = 1;
+  const chipState = { activity: '', smoking: '', alcohol: '', stress: '' };
+
+  document.querySelectorAll('.chip-select').forEach((group) => {
+    const key = group.dataset.chipGroup;
+    group.querySelectorAll('.chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        group.querySelectorAll('.chip').forEach((c) => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        chipState[key] = chip.dataset.value;
+      });
+    });
+  });
+
+  function showSection(n) {
+    document.querySelectorAll('.form-section').forEach((s) => s.classList.remove('active'));
+    document.querySelector(`.form-section[data-section="${n}"]`).classList.add('active');
+    document.getElementById('progressFill').style.width = `${(n / totalSections) * 100}%`;
+    document.getElementById('prevBtn').style.visibility = n === 1 ? 'hidden' : 'visible';
+    document.getElementById('nextBtn').style.display = n === totalSections ? 'none' : 'inline-flex';
+    document.getElementById('submitBtn').style.display = n === totalSections ? 'inline-flex' : 'none';
+    if (n === totalSections) renderReview();
+  }
+
+  function validateSection(n) {
+    const alertEl = document.getElementById('alert');
+    hideAlert(alertEl);
+    if (n === 1) {
+      const age = document.getElementById('age').value;
+      const gender = document.getElementById('gender').value;
+      const height = document.getElementById('height').value;
+      const weight = document.getElementById('weight').value;
+      if (!age || !gender || !height || !weight) {
+        showAlert(alertEl, 'Please complete all fields in this section.');
+        return false;
+      }
+    }
+    if (n === 2) {
+      const fields = ['systolic', 'diastolic', 'heart_rate', 'glucose', 'sleep'];
+      if (fields.some((f) => document.getElementById(f).value === '')) {
+        showAlert(alertEl, 'Please complete all vital sign fields.');
+        return false;
+      }
+    }
+    if (n === 3) {
+      if (!chipState.activity || !chipState.smoking || !chipState.alcohol || !chipState.stress) {
+        showAlert(alertEl, 'Please make a selection for each lifestyle question.');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    if (!validateSection(current)) return;
+    current = Math.min(current + 1, totalSections);
+    showSection(current);
+  });
+  document.getElementById('prevBtn').addEventListener('click', () => {
+    current = Math.max(current - 1, 1);
+    showSection(current);
+  });
+
+  function collectPayload() {
+    return {
+      age: Number(document.getElementById('age').value),
+      gender: document.getElementById('gender').value,
+      height: Number(document.getElementById('height').value),
+      weight: Number(document.getElementById('weight').value),
+      blood_pressure: `${document.getElementById('systolic').value}/${document.getElementById('diastolic').value}`,
+      heart_rate: Number(document.getElementById('heart_rate').value),
+      glucose: Number(document.getElementById('glucose').value),
+      sleep: Number(document.getElementById('sleep').value),
+      activity: chipState.activity,
+      smoking: chipState.smoking,
+      alcohol: chipState.alcohol,
+      stress: chipState.stress,
+      family_history: splitCsv(document.getElementById('family_history').value),
+      existing_conditions: splitCsv(document.getElementById('existing_conditions').value),
+      symptoms: splitCsv(document.getElementById('symptoms').value),
+    };
+  }
+
+  function splitCsv(v) {
+    return v.split(',').map((s) => s.trim()).filter(Boolean);
+  }
+
+  function renderReview() {
+    const p = collectPayload();
+    const rows = [
+      ['Age', p.age], ['Gender', p.gender], ['Height', p.height + ' cm'], ['Weight', p.weight + ' kg'],
+      ['Blood Pressure', p.blood_pressure], ['Heart Rate', p.heart_rate + ' bpm'], ['Glucose', p.glucose + ' mg/dL'],
+      ['Sleep', p.sleep + ' hrs'], ['Activity', p.activity], ['Smoking', p.smoking], ['Alcohol', p.alcohol],
+      ['Stress', p.stress], ['Family History', p.family_history.join(', ') || '—'],
+      ['Existing Conditions', p.existing_conditions.join(', ') || '—'], ['Symptoms', p.symptoms.join(', ') || '—'],
+    ];
+    document.getElementById('reviewSummary').innerHTML = rows.map(([k, v]) =>
+      `<div class="list-item"><span style="color:var(--text-muted);">${k}</span><strong>${escapeHtml(String(v))}</strong></div>`
+    ).join('');
+  }
+
+  document.getElementById('assessmentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const alertEl = document.getElementById('alert');
+    hideAlert(alertEl);
+
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> Analyzing…';
+
+    try {
+      const payload = collectPayload();
+      const data = await apiRequest('/assessment', { method: 'POST', body: payload });
+      window.location.href = `results.html?id=${data.assessment.id}`;
+    } catch (err) {
+      showAlert(alertEl, err.message);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Assessment';
+    }
+  });
+
+  showSection(current);
+</script>
+</body>
+</html>

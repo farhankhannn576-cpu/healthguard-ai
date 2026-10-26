@@ -1,0 +1,15 @@
+[
+  "age",
+  "bmi",
+  "systolic",
+  "diastolic",
+  "heart_rate",
+  "glucose",
+  "sleep",
+  "activity_score",
+  "smoking_score",
+  "alcohol_score",
+  "stress_score",
+  "family_history_count",
+  "existing_conditions_count"
+]

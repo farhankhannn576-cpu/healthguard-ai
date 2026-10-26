@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>History — HealthGuard AI</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">❤</span> HealthGuard AI</div>
+    <nav>
+      <a href="dashboard.html" data-nav-link="dashboard">📊 Dashboard</a>
+      <a href="assessment.html" data-nav-link="assessment">📋 New Assessment</a>
+      <a href="history.html" data-nav-link="history">🕘 History</a>
+      <a href="assistant.html" data-nav-link="assistant">💬 AI Assistant</a>
+    </nav>
+    <div class="logout">
+      <a href="#" data-logout class="btn btn-outline btn-block">Log out</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div>
+        <h1>Assessment History</h1>
+        <p>All your past assessments, most recent first.</p>
+      </div>
+      <a href="assessment.html" class="btn btn-primary">+ New Assessment</a>
+    </div>
+
+    <div id="loading" class="empty-state">Loading history…</div>
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <h3>No assessments yet</h3>
+      <p>Your assessment history will appear here once you complete one.</p>
+      <a href="assessment.html" class="btn btn-primary">Start Assessment</a>
+    </div>
+
+    <div id="listWrap" class="card" style="display:none;">
+      <div id="list"></div>
+    </div>
+  </main>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+  Auth.requireAuth();
+  initNavUser('history');
+
+  async function loadHistory() {
+    try {
+      const data = await apiRequest('/assessment');
+      document.getElementById('loading').style.display = 'none';
+
+      if (!data.assessments.length) {
+        document.getElementById('emptyState').style.display = 'block';
+        return;
+      }
+      document.getElementById('listWrap').style.display = 'block';
+      renderList(data.assessments);
+    } catch (err) {
+      document.getElementById('loading').textContent = 'Could not load history: ' + err.message;
+    }
+  }
+
+  function renderList(items) {
+    document.getElementById('list').innerHTML = items.map((a) => `
+      <div class="list-item" data-id="${a.id}">
+        <div>
+          <strong>${formatDate(a.created_at)}</strong>
+          <div style="font-size:0.85rem; color:var(--text-muted);">
+            ${a.probability}% probability · BP ${escapeHtml(a.blood_pressure)} · Glucose ${a.glucose} mg/dL
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          ${riskPillHtml(a.risk_level)}
+          <a href="results.html?id=${a.id}" class="btn btn-ghost">View</a>
+          <button class="btn btn-danger" data-delete="${a.id}">Delete</button>
+        </div>
+      </div>
+    `).join('');
+
+    document.querySelectorAll('[data-delete]').forEach((btn) => {
+      btn.addEventListener('click', () => deleteAssessment(btn.dataset.delete));
+    });
+  }
+
+  async function deleteAssessment(id) {
+    if (!confirm('Delete this assessment? This cannot be undone.')) return;
+    try {
+      await apiRequest(`/assessment/${id}`, { method: 'DELETE' });
+      document.querySelector(`[data-id="${id}"]`)?.remove();
+      const remaining = document.querySelectorAll('[data-id]').length;
+      if (!remaining) {
+        document.getElementById('listWrap').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'block';
+      }
+    } catch (err) {
+      alert('Could not delete assessment: ' + err.message);
+    }
+  }
+
+  loadHistory();
+</script>
+</body>
+</html>

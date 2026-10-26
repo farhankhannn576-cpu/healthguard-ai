@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — HealthGuard AI</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">❤</span> HealthGuard AI</div>
+    <nav>
+      <a href="dashboard.html" data-nav-link="dashboard">📊 Dashboard</a>
+      <a href="assessment.html" data-nav-link="assessment">📋 New Assessment</a>
+      <a href="history.html" data-nav-link="history">🕘 History</a>
+      <a href="assistant.html" data-nav-link="assistant">💬 AI Assistant</a>
+    </nav>
+    <div class="logout">
+      <a href="#" data-logout class="btn btn-outline btn-block">Log out</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div>
+        <h1>Welcome back, <span data-user-name>there</span> 👋</h1>
+        <p>Here's a snapshot of your latest health screening.</p>
+      </div>
+      <a href="assessment.html" class="btn btn-primary">+ New Assessment</a>
+    </div>
+
+    <div id="loading" class="empty-state">Loading your dashboard…</div>
+    <div id="content" style="display:none;">
+
+      <div class="stat-grid">
+        <div class="card stat-card">
+          <div class="label">Current Risk Level</div>
+          <div class="value" id="statRisk">—</div>
+        </div>
+        <div class="card stat-card">
+          <div class="label">Risk Probability</div>
+          <div class="value" id="statProb">—</div>
+        </div>
+        <div class="card stat-card">
+          <div class="label">Assessments Taken</div>
+          <div class="value" id="statCount">—</div>
+        </div>
+        <div class="card stat-card">
+          <div class="label">Last Assessment</div>
+          <div class="value" id="statDate" style="font-size:1.1rem;">—</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <h3 style="margin-top:0;">Risk Trend</h3>
+          <canvas id="trendChart" height="140"></canvas>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0;">Latest Health Metrics</h3>
+          <div id="metricsList"></div>
+        </div>
+      </div>
+
+      <div class="two-col" style="margin-top:20px;">
+        <div class="card">
+          <h3 style="margin-top:0;">Contributing Factors</h3>
+          <div id="factorsTags" class="tag-list"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0;">AI Recommendations</h3>
+          <ul id="recsList" style="margin:0; padding-left:18px; font-size:0.92rem; color:var(--text);"></ul>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <h3 style="margin:0;">Recent Assessments</h3>
+          <a href="history.html">View all →</a>
+        </div>
+        <div id="recentList"></div>
+      </div>
+    </div>
+
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <h3>No assessments yet</h3>
+      <p>Complete your first health assessment to see your dashboard come to life.</p>
+      <a href="assessment.html" class="btn btn-primary">Start Assessment</a>
+    </div>
+  </main>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+  Auth.requireAuth();
+  initNavUser('dashboard');
+
+  let chartInstance = null;
+
+  async function loadDashboard() {
+    try {
+      const data = await apiRequest('/dashboard');
+      document.getElementById('loading').style.display = 'none';
+
+      if (!data.latest_assessment) {
+        document.getElementById('emptyState').style.display = 'block';
+        return;
+      }
+      document.getElementById('content').style.display = 'block';
+      renderStats(data);
+      renderTrend(data.trend);
+      renderMetrics(data.latest_assessment);
+      renderFactors(data.latest_assessment);
+      renderRecs(data.latest_assessment);
+      renderRecentList(data.recent_assessments);
+    } catch (err) {
+      document.getElementById('loading').textContent = 'Could not load dashboard: ' + err.message;
+    }
+  }
+
+  function renderStats(data) {
+    const latest = data.latest_assessment;
+    document.getElementById('statRisk').innerHTML = riskPillHtml(latest.risk_level);
+    document.getElementById('statProb').textContent = latest.probability + '%';
+    document.getElementById('statCount').textContent = data.recent_assessments.length;
+    document.getElementById('statDate').textContent = formatDate(latest.created_at);
+  }
+
+  function renderTrend(trend) {
+    const ctx = document.getElementById('trendChart');
+    const labels = trend.map((t) => formatDate(t.date).split(',')[0]);
+    const values = trend.map((t) => t.probability);
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Risk probability (%)',
+          data: values,
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37,99,235,0.1)',
+          tension: 0.3,
+          fill: true,
+          pointRadius: 4,
+        }],
+      },
+      options: {
+        responsive: true,
+        scales: { y: { min: 0, max: 100 } },
+        plugins: { legend: { display: false } },
+      },
+    });
+  }
+
+  function renderMetrics(a) {
+    const rows = [
+      ['Age', a.age], ['Gender', a.gender], ['Height', a.height + ' cm'], ['Weight', a.weight + ' kg'],
+      ['Blood Pressure', a.blood_pressure], ['Heart Rate', a.heart_rate + ' bpm'],
+      ['Glucose', a.glucose + ' mg/dL'], ['Sleep', a.sleep + ' hrs'],
+    ];
+    document.getElementById('metricsList').innerHTML = rows.map(([k, v]) =>
+      `<div class="list-item"><span style="color:var(--text-muted);">${k}</span><strong>${escapeHtml(String(v))}</strong></div>`
+    ).join('');
+  }
+
+  function renderFactors(a) {
+    document.getElementById('factorsTags').innerHTML = (a.factors || [])
+      .map((f) => `<span class="tag">${escapeHtml(f)}</span>`).join('');
+  }
+
+  function renderRecs(a) {
+    document.getElementById('recsList').innerHTML = (a.recommendations || [])
+      .map((r) => `<li style="margin-bottom:6px;">${escapeHtml(r)}</li>`).join('');
+  }
+
+  function renderRecentList(list) {
+    document.getElementById('recentList').innerHTML = list.map((a) => `
+      <div class="list-item">
+        <div>
+          <strong>${formatDate(a.created_at)}</strong>
+          <div style="font-size:0.85rem; color:var(--text-muted);">${a.probability}% probability</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          ${riskPillHtml(a.risk_level)}
+          <a href="results.html?id=${a.id}" class="btn btn-ghost">View</a>
+        </div>
+      </div>
+    `).join('') || '<p class="empty-state">No assessments yet.</p>';
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register — HealthGuard AI</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="brand" style="color:inherit;"><span class="brand-mark">❤</span> HealthGuard AI</a>
+    <div class="nav-actions">
+      <a href="login.html" class="btn btn-ghost">Log in</a>
+    </div>
+  </div>
+</header>
+
+<div class="auth-wrap">
+  <div class="card auth-card">
+    <h1>Create your account</h1>
+    <p class="sub">Start your free health-risk assessment in under a minute.</p>
+
+    <div id="alert" class="alert"></div>
+
+    <form id="registerForm" novalidate>
+      <div class="field">
+        <label for="name">Full name</label>
+        <input type="text" id="name" name="name" autocomplete="name" required minlength="2">
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="new-password" required minlength="8">
+        <div class="hint">At least 8 characters.</div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Create account</button>
+    </form>
+
+    <p style="text-align:center; margin-top:18px; font-size:0.9rem; color:var(--text-muted);">
+      Already have an account? <a href="login.html">Log in</a>
+    </p>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+  if (Auth.isLoggedIn()) window.location.href = 'dashboard.html';
+
+  const form = document.getElementById('registerForm');
+  const alertEl = document.getElementById('alert');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideAlert(alertEl);
+
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (name.length < 2) return showAlert(alertEl, 'Name must be at least 2 characters.');
+    if (password.length < 8) return showAlert(alertEl, 'Password must be at least 8 characters.');
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> Creating account…';
+
+    try {
+      const data = await apiRequest('/auth/register', { method: 'POST', auth: false, body: { name, email, password } });
+      Auth.setSession(data.token, data.user);
+      window.location.href = 'assessment.html';
+    } catch (err) {
+      showAlert(alertEl, err.message);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create account';
+    }
+  });
+</script>
+</body>
+</html>

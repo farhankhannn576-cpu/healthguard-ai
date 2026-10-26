@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Results — HealthGuard AI</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">❤</span> HealthGuard AI</div>
+    <nav>
+      <a href="dashboard.html" data-nav-link="dashboard">📊 Dashboard</a>
+      <a href="assessment.html" data-nav-link="assessment">📋 New Assessment</a>
+      <a href="history.html" data-nav-link="history">🕘 History</a>
+      <a href="assistant.html" data-nav-link="assistant">💬 AI Assistant</a>
+    </nav>
+    <div class="logout">
+      <a href="#" data-logout class="btn btn-outline btn-block">Log out</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div>
+        <h1>Assessment Result</h1>
+        <p id="resultDate">—</p>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-outline" id="downloadBtn">⬇ Download PDF</button>
+        <a href="assistant.html" class="btn btn-primary">Ask AI Assistant</a>
+      </div>
+    </div>
+
+    <div id="loading" class="empty-state">Loading result…</div>
+
+    <div id="content" style="display:none;">
+      <div class="card" style="text-align:center; padding:36px;">
+        <div style="font-size:0.9rem; color:var(--text-muted); margin-bottom:8px;">Overall Risk Level</div>
+        <div id="riskBig" style="font-size:2.2rem; font-weight:800; margin-bottom:10px;"></div>
+        <div id="probBig" style="color:var(--text-muted);"></div>
+      </div>
+
+      <div class="two-col" style="margin-top:20px;">
+        <div class="card">
+          <h3 style="margin-top:0;">Contributing Factors</h3>
+          <div id="factorsTags" class="tag-list"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0;">Recommendations</h3>
+          <ul id="recsList" style="margin:0; padding-left:18px; font-size:0.92rem;"></ul>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px;">
+        <h3 style="margin-top:0;">Health Metrics Submitted</h3>
+        <div id="metricsList"></div>
+      </div>
+
+      <div class="disclaimer" style="margin-top:20px;">
+        <strong>Medical Disclaimer</strong>
+        This result is an educational estimate, not a medical diagnosis. Model version: <span id="modelVersion"></span>.
+        Please consult a licensed healthcare professional to discuss these results.
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+  Auth.requireAuth();
+  initNavUser('');
+
+  const params = new URLSearchParams(window.location.search);
+  const assessmentId = params.get('id');
+  let currentAssessment = null;
+
+  if (!assessmentId) {
+    window.location.href = 'history.html';
+  }
+
+  async function loadResult() {
+    try {
+      const data = await apiRequest(`/assessment/${assessmentId}`);
+      currentAssessment = data.assessment;
+      render(currentAssessment);
+    } catch (err) {
+      document.getElementById('loading').textContent = 'Could not load result: ' + err.message;
+    }
+  }
+
+  function render(a) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    document.getElementById('resultDate').textContent = formatDate(a.created_at);
+
+    const riskEl = document.getElementById('riskBig');
+    riskEl.textContent = a.risk_level + ' Risk';
+    riskEl.style.color = { Low: 'var(--low)', Moderate: 'var(--moderate)', High: 'var(--high)' }[a.risk_level];
+
+    document.getElementById('probBig').textContent = `Estimated probability: ${a.probability}%`;
+    document.getElementById('modelVersion').textContent = a.model_version;
+
+    document.getElementById('factorsTags').innerHTML = (a.factors || [])
+      .map((f) => `<span class="tag">${escapeHtml(f)}</span>`).join('');
+    document.getElementById('recsList').innerHTML = (a.recommendations || [])
+      .map((r) => `<li style="margin-bottom:6px;">${escapeHtml(r)}</li>`).join('');
+
+    const rows = [
+      ['Age', a.age], ['Gender', a.gender], ['Height', a.height + ' cm'], ['Weight', a.weight + ' kg'],
+      ['Blood Pressure', a.blood_pressure], ['Heart Rate', a.heart_rate + ' bpm'], ['Glucose', a.glucose + ' mg/dL'],
+      ['Sleep', a.sleep + ' hrs'], ['Activity', a.activity], ['Smoking', a.smoking], ['Alcohol', a.alcohol], ['Stress', a.stress],
+      ['Family History', (a.family_history || []).join(', ') || '—'],
+      ['Existing Conditions', (a.existing_conditions || []).join(', ') || '—'],
+      ['Symptoms', (a.symptoms || []).join(', ') || '—'],
+    ];
+    document.getElementById('metricsList').innerHTML = rows.map(([k, v]) =>
+      `<div class="list-item"><span style="color:var(--text-muted);">${k}</span><strong>${escapeHtml(String(v))}</strong></div>`
+    ).join('');
+  }
+
+  document.getElementById('downloadBtn').addEventListener('click', () => {
+    if (!currentAssessment) return;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const a = currentAssessment;
+    const user = Auth.getUser();
+    let y = 18;
+
+    doc.setFontSize(18); doc.text('HealthGuard AI — Assessment Report', 14, y); y += 10;
+    doc.setFontSize(10); doc.setTextColor(100);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, y); y += 10;
+
+    doc.setTextColor(0); doc.setFontSize(12);
+    doc.text(`Patient: ${user?.name || ''}  (${user?.email || ''})`, 14, y); y += 6;
+    doc.text(`Assessment Date: ${formatDate(a.created_at)}`, 14, y); y += 10;
+
+    doc.setFontSize(14); doc.text(`Risk Level: ${a.risk_level}  (${a.probability}% probability)`, 14, y); y += 8;
+
+    doc.setFontSize(12); doc.text('Health Metrics:', 14, y); y += 6;
+    doc.setFontSize(10);
+    const metricLines = [
+      `Age: ${a.age}   Gender: ${a.gender}   Height: ${a.height} cm   Weight: ${a.weight} kg`,
+      `Blood Pressure: ${a.blood_pressure}   Heart Rate: ${a.heart_rate} bpm   Glucose: ${a.glucose} mg/dL`,
+      `Sleep: ${a.sleep} hrs   Activity: ${a.activity}   Smoking: ${a.smoking}   Alcohol: ${a.alcohol}   Stress: ${a.stress}`,
+    ];
+    metricLines.forEach((line) => { doc.text(line, 14, y); y += 6; });
+    y += 4;
+
+    doc.setFontSize(12); doc.text('Contributing Factors:', 14, y); y += 6;
+    doc.setFontSize(10);
+    (a.factors || []).forEach((f) => { doc.text(`• ${f}`, 16, y); y += 6; });
+    y += 4;
+
+    doc.setFontSize(12); doc.text('Recommendations:', 14, y); y += 6;
+    doc.setFontSize(10);
+    (a.recommendations || []).forEach((r) => {
+      const split = doc.splitTextToSize(`• ${r}`, 180);
+      doc.text(split, 16, y); y += 6 * split.length;
+    });
+    y += 6;
+
+    doc.setFontSize(9); doc.setTextColor(150);
+    const disclaimer = doc.splitTextToSize(
+      'Medical Disclaimer: This application provides educational health-risk screening only. It is not a ' +
+      'medical diagnosis and does not replace professional medical advice.', 180);
+    doc.text(disclaimer, 14, y);
+
+    doc.save(`healthguard-report-${a.id}.pdf`);
+  });
+
+  loadResult();
+</script>
+</body>
+</html>

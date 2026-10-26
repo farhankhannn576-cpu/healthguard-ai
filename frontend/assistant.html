@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Assistant — HealthGuard AI</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">❤</span> HealthGuard AI</div>
+    <nav>
+      <a href="dashboard.html" data-nav-link="dashboard">📊 Dashboard</a>
+      <a href="assessment.html" data-nav-link="assessment">📋 New Assessment</a>
+      <a href="history.html" data-nav-link="history">🕘 History</a>
+      <a href="assistant.html" data-nav-link="assistant">💬 AI Assistant</a>
+    </nav>
+    <div class="logout">
+      <a href="#" data-logout class="btn btn-outline btn-block">Log out</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div>
+        <h1>AI Health Assistant</h1>
+        <p>Ask about your results, risk factors, or general health topics. Not a substitute for medical advice.</p>
+      </div>
+    </div>
+
+    <div class="card chat-window">
+      <div id="messages" class="chat-messages">
+        <div class="empty-state" id="emptyChat">
+          👋 Hi! I can help explain your assessment results, risk factors, or answer general health questions.
+          I can't diagnose conditions or prescribe medication — for that, please see a licensed clinician.
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="Ask a question…" autocomplete="off">
+        <button class="btn btn-primary" id="sendBtn">Send</button>
+      </div>
+    </div>
+
+    <div class="disclaimer" style="margin-top:16px;">
+      <strong>Medical Disclaimer</strong>
+      This AI assistant provides general educational information only. It does not diagnose conditions,
+      prescribe or adjust medication, or replace professional medical care. In an emergency, contact your
+      local emergency services immediately.
+    </div>
+  </main>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+  Auth.requireAuth();
+  initNavUser('assistant');
+
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const emptyChat = document.getElementById('emptyChat');
+
+  function appendMessage(role, text) {
+    if (emptyChat) emptyChat.style.display = 'none';
+    const div = document.createElement('div');
+    div.className = `chat-msg ${role}`;
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  async function loadHistory() {
+    try {
+      const data = await apiRequest('/ai/chat/history');
+      if (data.history.length) emptyChat.style.display = 'none';
+      data.history.forEach((h) => appendMessage(h.role, h.message));
+    } catch (err) {
+      console.error('Could not load chat history:', err.message);
+    }
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    appendMessage('user', text);
+    inputEl.value = '';
+    sendBtn.disabled = true;
+
+    const thinkingEl = appendMessage('assistant', 'Thinking…');
+
+    try {
+      const data = await apiRequest('/ai/chat', { method: 'POST', body: { message: text } });
+      thinkingEl.textContent = data.reply;
+    } catch (err) {
+      thinkingEl.textContent = 'Sorry, I ran into an issue: ' + err.message;
+    } finally {
+      sendBtn.disabled = false;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+  loadHistory();
+</script>
+</body>
+</html>
