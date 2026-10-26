@@ -42,6 +42,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error.' });
 });
 
-app.listen(PORT, () => {
-  console.log(`HealthGuard AI backend listening on http://localhost:${PORT}`);
-});
+// Start the server only when running locally
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`HealthGuard AI backend listening on http://localhost:${PORT}`);
+  });
+}
+
+// Export Express for serverless deployment
+module.exports = app;
