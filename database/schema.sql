@@ -1,8 +1,5 @@
 -- HealthGuard AI database schema
-CREATE DATABASE IF NOT EXISTS healthguard_ai
-  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-USE healthguard_ai;
+USE defaultdb;
 
 -- ============ USERS ============
 CREATE TABLE IF NOT EXISTS users (
