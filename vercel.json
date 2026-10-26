@@ -1,11 +1,19 @@
+
 {
   "version": 2,
   "functions": {
     "api/index.js": {
       "maxDuration": 30
+    },
+    "api/predict.py": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
+    {
+      "source": "/api/predict",
+      "destination": "/api/predict"
+    },
     {
       "source": "/(.*)",
       "destination": "/api/index"

@@ -9,7 +9,10 @@ app = Flask(__name__)
 def home():
     return jsonify({"status": "ok", "service": "HealthGuard AI ML"})
 
+
+@app.post("/api/predict")
 @app.post("/predict")
+
 def predict_risk():
     if not request.is_json:
         return jsonify({"error": "JSON input required"}), 400

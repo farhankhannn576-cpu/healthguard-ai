@@ -1,44 +1,73 @@
+
 const { spawn } = require('child_process');
 const path = require('path');
 
 const AI_DIR = path.join(__dirname, '..', '..', 'ai');
 const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
 
-/**
- * Runs ai/model.py with the given health profile payload and resolves with
- * the parsed JSON prediction: { risk_level, probability, factors,
- * recommendations, model_version }.
- */
-function predictRisk(healthProfile) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(PYTHON_BIN, ['model.py'], { cwd: AI_DIR });
+async function predictRisk(healthProfile) {
+  // Run Python directly during local development.
+  if (!process.env.VERCEL) {
+    return new Promise((resolve, reject) => {
+      const child = spawn(PYTHON_BIN, ['model.py'], {
+        cwd: AI_DIR
+      });
 
-    let stdout = '';
-    let stderr = '';
+      let stdout = '';
+      let stderr = '';
 
-    child.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
-    child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
+      child.stdout.on('data', chunk => {
+        stdout += chunk.toString();
+      });
 
-    child.on('error', (err) => {
-      reject(new Error(`Failed to start Python ML process: ${err.message}`));
+      child.stderr.on('data', chunk => {
+        stderr += chunk.toString();
+      });
+
+      child.on('error', reject);
+
+      child.on('close', code => {
+        if (code !== 0) {
+          return reject(new Error(stderr || stdout));
+        }
+
+        try {
+          resolve(JSON.parse(stdout.trim()));
+        } catch (err) {
+          reject(err);
+        }
+      });
+
+      child.stdin.write(JSON.stringify(healthProfile));
+      child.stdin.end();
     });
+  }
 
-    child.on('close', (code) => {
-      if (code !== 0 && !stdout.trim()) {
-        return reject(new Error(`ML process exited with code ${code}: ${stderr || 'unknown error'}`));
-      }
-      try {
-        const result = JSON.parse(stdout.trim());
-        if (result.error) return reject(new Error(result.error));
-        resolve(result);
-      } catch (e) {
-        reject(new Error(`Could not parse ML output: ${stdout} ${stderr}`));
-      }
-    });
+  // On Vercel, call the Python API.
+  const apiUrl = process.env.ML_API_URL;
+  const apiKey = process.env.ML_API_KEY;
 
-    child.stdin.write(JSON.stringify(healthProfile));
-    child.stdin.end();
+  if (!apiUrl || !apiKey) {
+    throw new Error('ML_API_URL or ML_API_KEY is missing');
+  }
+
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': apiKey
+    },
+    body: JSON.stringify(healthProfile),
+    signal: AbortSignal.timeout(25000)
   });
+
+  const result = await response.json();
+
+  if (!response.ok || result.error) {
+    throw new Error(result.error || 'ML prediction failed');
+  }
+
+  return result;
 }
 
 module.exports = { predictRisk };
