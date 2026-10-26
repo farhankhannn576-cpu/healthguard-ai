@@ -1,5 +1,7 @@
 
 const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
@@ -9,13 +11,18 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME || 'healthguard_ai',
 
   ssl: process.env.DB_HOST
-    ? { minVersion: 'TLSv1.2' }
+    ? {
+        ca: fs.readFileSync(
+          path.join(__dirname, '../../certs/ca.pem')
+        ),
+        rejectUnauthorized: true
+      }
     : undefined,
 
   waitForConnections: true,
   connectionLimit: 5,
   queueLimit: 0,
-  decimalNumbers: true,
+  decimalNumbers: true
 });
 
 module.exports = pool;
